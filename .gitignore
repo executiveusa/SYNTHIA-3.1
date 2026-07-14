@@ -1,0 +1,35 @@
+# Secrets & local config — never commit
+config.json
+.env
+
+# Persona / runtime state (local per-machine)
+jetty-persona.json
+jetty-gags.json
+jarvis-persona.json
+jarvis-gags.json
+jarvis-memory.md
+jetty-memory.md
+jetty-*.json
+jarvis-*.json
+jetty-episodes.jsonl
+jarvis-episodes.jsonl
+agent-workspace/
+
+# Ingested user data (ChatGPT exports etc.)
+vault/chatgpt/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (viewer tooling, if any)
+node_modules/
+
+# Temp test artifacts
+test_voice.mp3
