@@ -373,6 +373,18 @@ def jpersona(question=""):
         v3 = "v3" in (VOICE.get("model_id") or "")
     return persona.system(question, allow_tags=v3)
 
+def style_hint():
+    """Per-skin style suffix for prompt builders. Returns the RIGHT address-register + flavor
+    for the active skin, so we never leak British-butler 'sir' traits into the alex (CDMX) voice.
+    Add a branch per non-default skin as the roster grows."""
+    skin = persona.state()["skin"]
+    if skin == "alex":
+        return ("Responde en español mexicano, cálido y profesional. Trata a Ivette de 'tú' "
+                "(nunca 'señor' ni trato británico). Sé directa y útil; el ingenio es ligero, "
+                "nunca sarcástico. Nada de referencias a mayordomo británico. ")
+    # default (jetty / glados / pirate / coach) — keep the original British-butler register
+    return ("Speak with a touch of wit; address them as 'sir' now and then. ")
+
 # ---------- duplex voice (ElevenLabs Agents custom-LLM brain on a separate, token-authed port) ----------
 DUPLEX_PORT = 4722
 DUPLEX_FILE = os.path.join(ROOT, "jetty-duplex.json")
@@ -626,9 +638,9 @@ def chat(question, sid):
     # just talk (WEB-ENABLED so he actually knows current things), and DON'T move the graph.
     if (chit or top < 4 or not notes) and not synth:
         carry = LASTCTX.get(sid or "_") if h else None
-        sysp = jpersona(question) + ident + mem + ("The user is talking TO you — chatting, sharing a plan, or asking your "
-               "opinion — NOT asking to look something up in their notes. Reply in 1-2 short, genuinely "
-               "FUNNY, dry-witted sentences, 'sir' now and then. Don't mention their notes. Keep it quick "
+        sysp = jpersona(question) + ident + mem + style_hint() + ("The user is talking TO you — chatting, sharing a plan, or asking your "
+               "opinion — NOT asking to look something up in their notes. Reply in 1-2 short, "
+               "genuinely witty sentences. Don't mention their notes. Keep it quick "
                "— no caveats, no 'let me check', no hedging, no looking anything up; just a sharp, amusing take."
                + CONTROL_HINT)
         if carry:
@@ -642,8 +654,8 @@ def chat(question, sid):
     LASTCTX[sid or "_"] = context
 
     if synth:                                        # broad synthesis → always light the cluster
-        sysp = jpersona(question) + ident + mem + ("Synthesize ACROSS the notes below into a sharp 2-3 sentence answer with a "
-               "touch of wit; address them as 'sir' occasionally." + CONTROL_HINT + "\n\nNOTES:\n" + context)
+        sysp = jpersona(question) + ident + mem + style_hint() + ("Synthesize ACROSS the notes below into a "
+               "sharp 2-3 sentence answer." + CONTROL_HINT + "\n\nNOTES:\n" + context)
         ans, err = call_model(h + [{"role": "user", "content": question}], sysp, 500)
         if not err:
             add_turn(sid, "user", question); add_turn(sid, "assistant", ans)
@@ -658,7 +670,7 @@ def chat(question, sid):
         "witty line (the note is already on their screen — don't recite it), and BEGIN your reply with [N].\n"
         "• If it's conversational — an opinion, a plan, small talk, or about something not really in these "
         "notes — ignore the notes, reply naturally, and BEGIN your reply with [C].\n"
-        "Output the tag first, then the reply. Address them as 'sir' now and then; if it's [C], keep it "
+        "Output the tag first, then the reply. " + style_hint() + " If it's [C], keep it "
         "short and funny — no looking anything up." + CONTROL_HINT + "\n\nNotes on screen:\n" + context)
     ans, err = call_model(h + [{"role": "user", "content": question}], sysp, 240)
     if err:
