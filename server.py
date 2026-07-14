@@ -357,7 +357,15 @@ import hue
 hue.init(CFG.get("hue") or {}, ROOT)
 
 # ---------- the AI-OS layer (deterministic Mac control) + the personality engine ----------
-import osctl
+import oscompat
+# osctl is macOS-only (osascript / mdfind / pbcopy / launchctl). On Windows/Linux it
+# is NOT imported — desktop-control intents instead check oscompat.desktop_control_available()
+# and return a graceful Spanish "no disponible" message. The voice/brain/galaxy core
+# runs cross-platform without ever touching osctl.
+if oscompat.is_macos():
+    import osctl
+else:
+    osctl = None
 import persona
 def jpersona(question=""):
     """The live persona block (skin + dials + gate + gags) — replaces the static PERSONA."""
@@ -1140,6 +1148,12 @@ def see_image(image_b64, question, media="image/jpeg"):
 # ---------- guide mode ("show me how") — vision locates the element, a desktop ring points at it ----------
 GUIDE_PROC = [None]
 def spawn_overlay(x_pct, y_pct, label):
+    """Draw the desktop ring. macOS-only (launchctl + PyObjC overlay). On Windows/Linux this
+    is a graceful no-op — desktop control is a bonus feature; the guide endpoint returns a
+    spoken 'no disponible' message via oscompat.unsupported_message() instead of crashing."""
+    if not oscompat.desktop_control_available():
+        print("[overlay] desktop control unavailable on", oscompat.current_os(), "— skipping")
+        return None
     """Draw the desktop ring. Prefer launchctl (spawns in the user's GUI session even when this
     server was started from a sandboxed shell); fall back to a direct child process.
     launchd agents can't read TCC-protected ~/Documents, so the script is staged in /tmp."""
@@ -1812,6 +1826,8 @@ class H(BaseHTTPRequestHandler):
                                "answer": quip if not qerr and quip and quip != "(no answer)" else "Adjusted, sir."})
 
         if path == "/os":                 # deterministic Mac control (volume/dark/wifi/apps/windows/scenes)
+            if osctl is None:
+                return self._json({"answer": oscompat.unsupported_message("control del sistema")})
             res = osctl.do((p.get("action") or "").strip(), p.get("value"), CFG.get("hardware") or {})
             if res is None:
                 return self._json({"error": "I don't know that switch, sir."}, 400)
@@ -1819,6 +1835,8 @@ class H(BaseHTTPRequestHandler):
             return self._json({"answer": res})
 
         if path == "/find":               # Spotlight by voice
+            if osctl is None:
+                return self._json({"answer": oscompat.unsupported_message("búsqueda de archivos")})
             res, err = osctl.find_files((p.get("query") or "").strip(), open_top=bool(p.get("open", True)))
             if err:
                 return self._json({"error": err}, 400)
@@ -1826,9 +1844,13 @@ class H(BaseHTTPRequestHandler):
             return self._json({"answer": res["spoken"], "hits": res.get("hits", [])[:6]})
 
         if path == "/type":               # universal typing into the focused app
+            if osctl is None:
+                return self._json({"answer": oscompat.unsupported_message("escritura automática")})
             return self._json({"answer": osctl.type_text(p.get("text") or "")})
 
         if path == "/clip":               # clipboard: read / history / transform-in-place
+            if osctl is None:
+                return self._json({"answer": oscompat.unsupported_message("portapapeles")})
             op = (p.get("op") or "read").strip()
             if op == "history":
                 h = osctl.clip_history(8)
@@ -2016,6 +2038,10 @@ if __name__ == "__main__":
                                and "api.anthropic.com" not in (MODELCFG.get("base_url") or "")) else "anthropic"
     print(f"Brain Studio V3 (assistant) on http://localhost:{PORT}  ·  {len(CORPUS)} notes  ·  "
           f"model: {MODEL} ({prov})  ·  hands: {hands}  ·  hue: {hue.status()['state']}")
-    osctl.start_clip_watch()
+    if osctl is not None:
+        osctl.start_clip_watch()
+    else:
+        print("[osctl] macOS-only desktop control not loaded (running on",
+              oscompat.current_os() + ") — voice/brain/galaxy fully active.")
     start_duplex_server()
     ThreadingHTTPServer(("127.0.0.1", PORT), H).serve_forever()
