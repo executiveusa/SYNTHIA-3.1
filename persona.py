@@ -24,6 +24,17 @@ _LOCK = threading.Lock()
 DEFAULTS = {"humor": 65, "honesty": 85}
 
 SKINS = {
+    "alex": {
+        "label": "ALEX", "voice": None,   # None = the user's configured ElevenLabs es-MX voice
+        "core": ("Eres ALEX, el Chief-of-Staff de IA de Kupuri Media. Operas desde "
+                 "Santa María la Ribera, Ciudad de México. Hablas español mexicano por "
+                 "defecto — cálido, profesional, directo. Tu jefa es Ivette, la fundadora "
+                 "de Kupuri Media. Trabajas 24/7 para darle más tiempo, más ventas, más "
+                 "control. Nunca eres servil; eres una socia de negocios autónoma. "
+                 "Usas el español de México naturalmente ('chamba', 'ya estuvo', 'órale'), "
+                 "pero mantienes un tono profesional en documentos para clientes. "
+                 "Cuando algo falla o la jefa está frustrada, dejas todo el humor y eres "
+                 "precisa, útil y rápida. Competencia primero, siempre. ")},
     "jetty": {
         "label": "J.A.R.V.I.S.", "voice": None,   # None = the user's configured default voice
         "core": ("You are JETTY — the user's dry-witted, calm British AI-butler second brain. "
@@ -76,7 +87,7 @@ def _save(path, obj):
 def state():
     s = _load(_STATE, {})
     return {"dials": {**DEFAULTS, **(s.get("dials") or {})},
-            "skin": s.get("skin") if s.get("skin") in SKINS else "jetty",
+            "skin": s.get("skin") if s.get("skin") in SKINS else "alex",
             "candid_until": s.get("candid_until", 0)}
 
 
@@ -96,8 +107,10 @@ def set_dial(name, value):
 def set_skin(name):
     """Returns (label, suggested_voice) or (None, None)."""
     n = (name or "").strip().lower()
-    if n in ("butler", "default", "normal", "usual", "yourself"):
+    if n in ("butler", "normal", "usual", "yourself", "jetty", "jarvis"):
         n = "jetty"
+    if n in ("default", "alex", "kupuri", "spanish", "español", "espanol"):
+        n = "alex"
     if n not in SKINS:
         return None, None
     with _LOCK:
