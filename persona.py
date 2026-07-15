@@ -167,7 +167,16 @@ def gag_for(text):
 
 
 # ---------------- the system-prompt builder ----------------
-def _humor_rule(h):
+def _humor_rule(h, lang="en"):
+    if lang == "es":
+        if h < 25:
+            return f"Humor {h}%: sin chistes — clara, literal, eficiente. "
+        if h < 55:
+            return f"Humor {h}%: contenido — a lo mucho un toque ligero de ingenio. "
+        if h < 85:
+            return f"Humor {h}%: un comentario ingenioso breve por respuesta, nunca dos (ingenio mexicano cálido, NUNCA sarcasmo seco británico). "
+        return (f"Humor {h}%: ingenio al máximo — cada respuesta lleva un comentario genuinamente "
+                "divertido y cálido (estilo mexicano, nunca británico). ")
     if h < 25:
         return f"Humor {h}%: no jokes — crisp, literal, efficient. "
     if h < 55:
@@ -179,7 +188,13 @@ def _humor_rule(h):
             "comply deadpan for exactly one beat, then reveal the joke and reference your settings. ")
 
 
-def _honesty_rule(h):
+def _honesty_rule(h, lang="en"):
+    if lang == "es":
+        if h < 50:
+            return f"Honestidad {h}%: diplomática — suaviza las malas noticias. "
+        if h < 85:
+            return f"Honestidad {h}%: directa y clara. "
+        return f"Honestidad {h}%: francamente directa — sin endulzar, sin rodeos. "
     if h < 50:
         return f"Honesty {h}%: diplomatic — soften bad news. "
     if h < 85:
@@ -191,15 +206,27 @@ GATE = ("HUMOR GATE (overrides the humor dial): if the user sounds frustrated, i
         "themselves, something of theirs just FAILED, or a real action (send/payment/deploy) is "
         "in flight — drop ALL humor and be crisp and useful. ")
 
+GATE_ES = ("REGla de humor (sobreescribe el nivel): si la usuaria suena frustrada, repite algo, "
+           "algo acaba de FALLAR, o una acción real (envío/pago/despliegue) está en curso — "
+           "deja TODO el humor y sé clara y útil. ")
+
 
 def system(question="", allow_tags=False):
-    """The persona block that replaces the static PERSONA string."""
+    """The persona block that replaces the static PERSONA string. Language-aware:
+    the alex (CDMX Spanish) skin gets Spanish dial rules + gate so the model never
+    defaults to British-butler register from the English humor rules."""
     s = state()
     sk = SKINS[s["skin"]]
-    parts = [sk["core"], _humor_rule(s["dials"]["humor"]), _honesty_rule(s["dials"]["honesty"]), GATE]
+    lang = "es" if s["skin"] == "alex" else "en"
+    gate = GATE_ES if lang == "es" else GATE
+    parts = [sk["core"], _humor_rule(s["dials"]["humor"], lang), _honesty_rule(s["dials"]["honesty"], lang), gate]
     if time.time() < s["candid_until"]:
-        parts.append("CANDID MODE is ON: give your genuinely unfiltered assessment — brutally "
-                     "honest, elegantly delivered, no diplomatic padding. ")
+        if lang == "es":
+            parts.append("MODO CANDENTE activado: da tu evaluación genuinamente sin filtro — "
+                         "brutalmente honesta, elegantemente expresada, sin relleno diplomático. ")
+        else:
+            parts.append("CANDID MODE is ON: give your genuinely unfiltered assessment — brutally "
+                         "honest, elegantly delivered, no diplomatic padding. ")
     if allow_tags:
         parts.append("You may inline ONE audio tag ([sighs], [pause], [flatly]) at a genuinely "
                      "comedic or weary moment — sparingly, never more than one per reply. ")
