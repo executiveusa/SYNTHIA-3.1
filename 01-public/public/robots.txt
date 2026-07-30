@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kupuri-media-main-site.vercel.app/sitemap.xml
