@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-void:    #08080A;
+  --color-surface: #0F0F12;
+  --color-panel:   #14141A;
+  --color-border:  #1E1E28;
+  --color-gold:    #F5A623;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--color-void);
+  color: #F8F8FC;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2A2A38; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3A3A50; }
+
+/* Glass panels */
+.glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+}
+
+/* Gold glow effect */
+.gold-glow {
+  box-shadow: 0 0 20px rgba(245,166,35,0.25);
+}
+
+/* ALEX agent pulse */
+.alex-online::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from 0deg, #F5A623, transparent, #F5A623);
+  animation: spin 3s linear infinite;
+  z-index: -1;
+}
+
+/* Terminal styles */
+.xterm-viewport::-webkit-scrollbar { width: 4px; }
+.xterm-viewport::-webkit-scrollbar-thumb { background: #2A2A38; }
+
+/* Status dot */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.online  { background: #22C55E; box-shadow: 0 0 6px #22C55E; }
+.status-dot.busy    { background: #F5A623; box-shadow: 0 0 6px #F5A623; }
+.status-dot.offline { background: #606075; }
+.status-dot.error   { background: #EF4444; box-shadow: 0 0 6px #EF4444; }
+
+@layer components {
+  .btn-gold {
+    @apply bg-gold-500 text-void font-semibold px-4 py-2 rounded-lg hover:bg-gold-400
+           transition-all duration-200 text-sm shadow-gold;
+  }
+  .btn-ghost {
+    @apply text-text-secondary hover:text-text-primary hover:bg-muted/40
+           px-3 py-2 rounded-lg transition-all duration-200 text-sm;
+  }
+  .panel-card {
+    @apply bg-panel border border-border rounded-xl shadow-panel;
+  }
+  .input-field {
+    @apply bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary
+           placeholder:text-text-muted focus:outline-none focus:border-gold-500/50
+           transition-colors duration-200 w-full;
+  }
+}

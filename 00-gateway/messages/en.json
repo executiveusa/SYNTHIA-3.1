@@ -1,0 +1,52 @@
+{
+  "Nameplate": {
+    "subtitle": "Agent · Kupuri Media"
+  },
+  "NFTCard": {
+    "toggleLabel": "View NFT Card",
+    "agentName": "AGENT ALEX™",
+    "brand": "KUPURI MEDIA",
+    "fieldTokenId": "Token ID",
+    "fieldColeccion": "Collection",
+    "fieldCreadoPor": "Created by",
+    "fieldMarca": "Brand",
+    "fieldPlataforma": "Platform",
+    "fieldRegistro": "Registry",
+    "status": "Protected Digital Entity",
+    "footer": "© 2026 Kupuri Media · All rights reserved",
+    "closeLabel": "Close"
+  },
+  "InviteModal": {
+    "title": "Invite Only",
+    "description": "This section is exclusive. Enter your access code to continue.",
+    "placeholder": "Invitation code",
+    "error": "Incorrect code. Request an invitation.",
+    "submitBtn": "Enter",
+    "footer": "© 2026 Kupuri Media · Agent Alex™",
+    "closeLabel": "Close"
+  },
+  "Sound": {
+    "question": "Would you like to enable background music?",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "Footer": {
+    "text": "Powered by Synthia 3.0™ · All rights reserved © 2026"
+  },
+  "Nav": {
+    "linkedin": "LinkedIn",
+    "twitter": "X / Twitter",
+    "instagram": "Instagram",
+    "youtube": "YouTube",
+    "blog": "Blog",
+    "projects": "Projects",
+    "about": "About",
+    "contact": "Contact",
+    "home": "Home",
+    "resume": "Resume",
+    "github": "GitHub"
+  },
+  "Lang": {
+    "toggle": "ES"
+  }
+}
