@@ -1,0 +1,37 @@
+# ── Secrets (never commit) ──────────────────────────
+config.json
+.env
+.env.local
+.env.*.local
+**/config.json
+
+# ── Per-app runtime state ───────────────────────────
+**/jetty-persona.json
+**/jetty-gags.json
+**/jetty-memory.md
+**/jetty-*.json
+**/jarvis-*.json
+**/agent-workspace/
+**/vault/chatgpt/
+
+# ── Dependencies ────────────────────────────────────
+node_modules/
+.next/
+dist/
+.vercel/
+.turbo/
+
+# ── Python ──────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ── OS ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Build / editor ──────────────────────────────────
+*.log
+.idea/
+.vscode/
