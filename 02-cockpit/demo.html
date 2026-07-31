@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYNTHIA 3.1 — Dame cualquier asignación</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&family=DM+Mono&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c4963c;
+    --sage: #5a7a52;
+    --deep: #0a1108;
+    --vellum: #1a2a1a;
+    --surface: #121a10;
+    --text: #f5f0e8;
+    --muted: #8a9e7e;
+    --border: rgba(196,150,60,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--deep);
+    color: var(--text);
+    font-family: 'Lato', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* ambient gradient */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(90,122,82,0.08), transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(196,150,60,0.06), transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: relative; z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 40px;
+  }
+  .brand {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 22px; color: var(--gold); letter-spacing: 0.02em;
+  }
+  .brand span { color: var(--muted); font-size: 14px; font-style: normal; font-family: 'DM Mono', monospace; }
+  .topbar-actions { display: flex; gap: 16px; align-items: center; }
+  .lang-toggle {
+    background: var(--vellum); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 14px; border-radius: 20px;
+    font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .lang-toggle:hover { border-color: var(--gold); color: var(--gold); }
+  .gear {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--vellum); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); cursor: pointer; font-size: 16px;
+    transition: all 0.3s;
+  }
+  .gear:hover { border-color: var(--gold); color: var(--gold); transform: rotate(45deg); }
+
+  /* ── Hero / Input ── */
+  .hero {
+    position: relative; z-index: 5;
+    max-width: 760px; margin: 40px auto 0; padding: 0 24px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 2.8rem; color: var(--text); margin-bottom: 28px;
+    line-height: 1.15;
+  }
+  .hero h1 .accent { color: var(--gold); }
+  .input-wrap {
+    position: relative;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 4px;
+    transition: border-color 0.3s;
+  }
+  .input-wrap:focus-within { border-color: rgba(196,150,60,0.4); }
+  .input-wrap textarea {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'Lato', sans-serif; font-size: 16px;
+    padding: 18px 20px; resize: none; min-height: 60px;
+  }
+  .input-wrap textarea::placeholder { color: var(--muted); }
+  .input-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 16px 12px;
+  }
+  .quick-starts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    background: var(--vellum); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; cursor: pointer; transition: all 0.3s;
+    font-family: 'DM Mono', monospace;
+  }
+  .chip:hover { border-color: var(--gold); color: var(--gold); }
+  .send-btn {
+    background: var(--gold); color: var(--deep);
+    border: none; padding: 10px 24px; border-radius: 12px;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+    transition: all 0.3s; font-family: 'Lato', sans-serif;
+  }
+  .send-btn:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(196,150,60,0.3); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ── Work area (hidden until task submitted) ── */
+  .work-area {
+    max-width: 960px; margin: 32px auto 60px; padding: 0 24px;
+    display: none;
+  }
+  .work-area.active { display: block; animation: fadeIn 0.5s; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .status-line {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    color: var(--sage); margin-bottom: 20px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--sage);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ── Work stream checklist ── */
+  .work-stream {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 24px;
+  }
+  .task-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid rgba(196,150,60,0.06);
+    font-size: 15px; transition: all 0.3s;
+  }
+  .task-item:last-child { border-bottom: none; }
+  .task-icon {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; transition: all 0.3s;
+  }
+  .task-item.pending .task-icon { border-color: var(--border); }
+  .task-item.active .task-icon { border-color: var(--gold); background: rgba(196,150,60,0.15); }
+  .task-item.active .task-icon::after { content: '●'; color: var(--gold); animation: pulse 1s infinite; }
+  .task-item.done .task-icon { border-color: var(--sage); background: var(--sage); }
+  .task-item.done .task-icon::after { content: '✓'; color: var(--deep); font-weight: 700; }
+  .task-item.done .task-label { color: var(--muted); text-decoration: line-through; }
+  .task-label { flex: 1; }
+  .task-agent {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* ── Bottom row: spheres + asset dock ── */
+  .bottom-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  }
+  @media (max-width: 700px) { .bottom-row { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; min-height: 220px;
+  }
+  .panel-title {
+    font-family: 'DM Mono', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--muted); margin-bottom: 16px;
+  }
+
+  /* ── Sphere mini (CSS animated) ── */
+  .sphere-ring {
+    position: relative; width: 100%; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sphere {
+    position: absolute; width: 28px; height: 28px; border-radius: 50%;
+    transition: all 0.5s; opacity: 0.3;
+  }
+  .sphere.glow {
+    opacity: 1; transform: scale(1.3);
+    animation: spherePulse 1.2s infinite;
+  }
+  @keyframes spherePulse {
+    0%,100% { box-shadow: 0 0 12px currentColor; }
+    50% { box-shadow: 0 0 24px currentColor, 0 0 40px currentColor; }
+  }
+  .sphere-label {
+    position: absolute; bottom: -20px; font-size: 9px;
+    font-family: 'DM Mono', monospace; color: var(--muted);
+    text-transform: uppercase; white-space: nowrap;
+  }
+
+  /* ── Asset dock ── */
+  .asset-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 140px; color: var(--muted); font-size: 13px; gap: 8px;
+  }
+  .asset-empty .spinner {
+    width: 24px; height: 24px; border: 2px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .asset-card {
+    background: var(--vellum); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; cursor: pointer;
+    transition: all 0.3s; animation: assetAppear 0.6s;
+  }
+  @keyframes assetAppear { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+  .asset-card:hover { border-color: var(--gold); }
+  .asset-icon { font-size: 28px; margin-bottom: 8px; }
+  .asset-name { font-weight: 700; font-size: 14px; color: var(--text); }
+  .asset-meta { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* ── Approve bar ── */
+  .approve-bar {
+    display: none; margin-top: 24px; padding: 20px;
+    background: var(--surface); border: 1px solid var(--gold);
+    border-radius: 16px; text-align: center;
+  }
+  .approve-bar.active { display: block; animation: fadeIn 0.5s; }
+  .approve-msg { font-size: 16px; margin-bottom: 16px; color: var(--text); }
+  .approve-msg .accent { color: var(--gold); font-family: 'Playfair Display', serif; font-style: italic; }
+  .approve-actions { display: flex; gap: 12px; justify-content: center; }
+  .btn-review {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); padding: 10px 28px; border-radius: 12px;
+    font-weight: 700; cursor: pointer; transition: all 0.3s;
+  }
+  .btn-review:hover { border-color: var(--sage); color: var(--sage); }
+  .btn-send {
+    background: var(--sage); color: var(--deep);
+    border: none; padding: 10px 28px; border-radius: 12px;
+    font-weight: 700; cursor: pointer; transition: all 0.3s;
+  }
+  .btn-send:hover { transform: scale(1.03); box-shadow: 0 0 20px rgba(90,122,82,0.3); }
+
+  /* ── Asset viewer modal ── */
+  .viewer-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(10,17,8,0.92); backdrop-filter: blur(8px);
+    align-items: center; justify-content: center; padding: 40px;
+  }
+  .viewer-overlay.active { display: flex; animation: fadeIn 0.3s; }
+  .viewer-content {
+    max-width: 700px; width: 100%; max-height: 85vh; overflow-y: auto;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px;
+  }
+  .viewer-close {
+    position: fixed; top: 24px; right: 32px;
+    background: var(--vellum); border: 1px solid var(--border);
+    width: 40px; height: 40px; border-radius: 50%;
+    color: var(--muted); cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .viewer-close:hover { color: var(--gold); border-color: var(--gold); }
+  .doc-title {
+    font-family: 'Playfair Display', serif; font-style: italic;
+    font-size: 1.8rem; color: var(--gold); margin-bottom: 8px;
+  }
+  .doc-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 24px; }
+  .doc-body { font-size: 15px; line-height: 1.8; color: var(--text); }
+  .doc-body h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin: 24px 0 12px; font-size: 1.3rem; }
+  .doc-body p { margin-bottom: 16px; }
+  .doc-body ul { margin-bottom: 16px; padding-left: 20px; }
+  .doc-body li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">SYNTHIA <span>3.1</span></div>
+  <div class="topbar-actions">
+    <button class="lang-toggle" onclick="toggleLang()">ES ▾</button>
+    <div class="gear" title="Configuración">⚙</div>
+  </div>
+</div>
+
+<!-- Hero / Input -->
+<div class="hero">
+  <h1>Dame cualquier <span class="accent">asignación</span>.</h1>
+  <div class="input-wrap">
+    <textarea id="taskInput" placeholder="Escribe una propuesta para un cliente, diseña una campaña, investiga un mercado..." rows="2"></textarea>
+    <div class="input-bar">
+      <div class="quick-starts">
+        <button class="chip" onclick="quickStart('propuesta')">Propuesta de cliente</button>
+        <button class="chip" onclick="quickStart('campana')">Campaña social</button>
+        <button class="chip" onclick="quickStart('sitio')">Sitio web</button>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="submitTask()">Enviar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Work area -->
+<div class="work-area" id="workArea">
+  <div class="status-line">
+    <span class="pulse-dot"></span>
+    <span id="statusText">SYNTHIA está trabajando…</span>
+  </div>
+
+  <div class="work-stream" id="workStream">
+    <!-- task items injected here -->
+  </div>
+
+  <div class="bottom-row">
+    <!-- Spheres -->
+    <div class="panel">
+      <div class="panel-title">◆ Esferas activas</div>
+      <div class="sphere-ring" id="sphereRing">
+        <!-- spheres injected here -->
+      </div>
+    </div>
+    <!-- Asset dock -->
+    <div class="panel">
+      <div class="panel-title">◆ Entregables</div>
+      <div id="assetDock">
+        <div class="asset-empty">
+          <div class="spinner"></div>
+          <span>Esperando entregables…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approve bar -->
+  <div class="approve-bar" id="approveBar">
+    <div class="approve-msg">Jefa, ya está lista. <span class="accent">¿La reviso o la envío?</span></div>
+    <div class="approve-actions">
+      <button class="btn-review" onclick="openViewer()">Revisar</button>
+      <button class="btn-send" onclick="sendAsset()">Enviar ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Asset viewer modal -->
+<div class="viewer-overlay" id="viewer">
+  <div class="viewer-close" onclick="closeViewer()">✕</div>
+  <div class="viewer-content" id="viewerContent">
+    <!-- asset content injected here -->
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let lang = 'es';
+let isWorking = false;
+
+// ── The 9 agents (sphere colors from sphere-state.ts) ─────
+const AGENTS = {
+  synthia:     { name: 'SYNTHIA',     color: '#8b5cf6', role: 'Coordinadora' },
+  alex:        { name: 'ALEX',        color: '#d4af37', role: 'Estratega' },
+  cazadora:    { name: 'CAZADORA',    color: '#ef4444', role: 'Ventas' },
+  forjadora:   { name: 'FORJADORA',   color: '#22c55e', role: 'Sistemas' },
+  seductora:   { name: 'SEDUCTORA',   color: '#eab308', role: 'Cierre' },
+  consejo:     { name: 'CONSEJO',     color: '#1d4ed8', role: 'Estrategia' },
+  'dr-economia': { name: 'DR. ECONOMÍA', color: '#f97316', role: 'Finanzas' },
+  'dra-cultura': { name: 'DRA. CULTURA', color: '#f43f5e', role: 'Contenido' },
+  'ing-teknos':  { name: 'ING. TEKNOS',  color: '#06b6d4', role: 'Tecnología' },
+};
+
+// ── Quick starts ───────────────────────────────────────────
+function quickStart(type) {
+  const prompts = {
+    propuesta: 'Escribe una propuesta de servicios para un restaurante en Polanco, CDMX. Incluye branding, sitio web, y manejo de redes sociales.',
+    campana: 'Diseña una campaña de redes sociales para lanzar una marca de café de especialidad en la Roma Norte.',
+    sitio: 'Crea la estructura y copy para un sitio web de una agencia de turismo en Puerto Escondido, Oaxaca.',
+  };
+  document.getElementById('taskInput').value = prompts[type] || '';
+  document.getElementById('taskInput').focus();
+}
+
+// ── Submit task ────────────────────────────────────────────
+function submitTask() {
+  const input = document.getElementById('taskInput').value.trim();
+  if (!input || isWorking) return;
+  isWorking = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('workArea').classList.add('active');
+  document.getElementById('approveBar').classList.remove('active');
+
+  // Build spheres
+  buildSpheres();
+
+  // Run the scripted demo flow
+  runDemoFlow(input);
+}
+
+// ── Build the sphere ring ──────────────────────────────────
+function buildSpheres() {
+  const ring = document.getElementById('sphereRing');
+  ring.innerHTML = '';
+  const ids = Object.keys(AGENTS);
+  const n = ids.length;
+  const radius = 55;
+  ids.forEach((id, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius * 0.6; // ellipse
+    const agent = AGENTS[id];
+    const el = document.createElement('div');
+    el.className = 'sphere';
+    el.id = 'sphere-' + id;
+    el.style.cssText = `left: calc(50% + ${x}px - 14px); top: calc(50% + ${y}px - 14px); background: ${agent.color}; color: ${agent.color};`;
+    ring.appendChild(el);
+  });
+}
+
+function glowSphere(id, on = true) {
+  const el = document.getElementById('sphere-' + id);
+  if (!el) return;
+  if (on) el.classList.add('glow');
+  else el.classList.remove('glow');
+}
+
+// ── Work stream ────────────────────────────────────────────
+function addTaskItem(label, agent, state = 'pending') {
+  const stream = document.getElementById('workStream');
+  const el = document.createElement('div');
+  el.className = 'task-item ' + state;
+  el.innerHTML = `
+    <div class="task-icon"></div>
+    <div class="task-label">${label}</div>
+    ${agent ? `<div class="task-agent">${agent}</div>` : ''}
+  `;
+  el.dataset.label = label;
+  stream.appendChild(el);
+  return el;
+}
+
+function updateTaskItem(el, state) {
+  if (typeof el === 'string') el = document.querySelector(`[data-label="${el}"]`);
+  if (!el) return;
+  el.className = 'task-item ' + state;
+}
+
+// ── The demo flow (scripted — replace with real SSE later) ─
+async function runDemoFlow(task) {
+  const stream = document.getElementById('workStream');
+  stream.innerHTML = '';
+  resetSpheres();
+
+  // Stage 1: Synthia plans
+  glowSphere('synthia');
+  document.getElementById('statusText').textContent = 'SYNTHIA está planeando…';
+  const plan = addTaskItem('Planeando la estrategia', 'SYNTHIA', 'active');
+  await sleep(1500);
+
+  // Plan items appear
+  updateTaskItem(plan, 'done');
+  const t1 = addTaskItem('Investigar el mercado y cliente', 'CAZADORA', 'pending');
+  const t2 = addTaskItem('Redactar la propuesta', 'DRA. CULTURA', 'pending');
+  const t3 = addTaskItem('Estructura financiera', 'DR. ECONOMÍA', 'pending');
+  const t4 = addTaskItem('Diseñar la portada', 'FORJADORA', 'pending');
+  await sleep(500);
+
+  // Stage 2: Cazadora researches
+  glowSphere('synthia', false);
+  glowSphere('cazadora');
+  updateTaskItem(t1, 'active');
+  document.getElementById('statusText').textContent = 'CAZADORA está investigando…';
+  await sleep(2000);
+  updateTaskItem(t1, 'done');
+  glowSphere('cazadora', false);
+
+  // Dr. Economia does financials
+  glowSphere('dr-economia');
+  updateTaskItem(t3, 'active');
+  document.getElementById('statusText').textContent = 'DR. ECONOMÍA calculando costos…';
+  await sleep(1800);
+  updateTaskItem(t3, 'done');
+  glowSphere('dr-economia', false);
+
+  // Dra. Cultura writes the proposal
+  glowSphere('dra-cultura');
+  updateTaskItem(t2, 'active');
+  document.getElementById('statusText').textContent = 'DRA. CULTURA redactando la propuesta…';
+  await sleep(2500);
+  updateTaskItem(t2, 'done');
+  glowSphere('dra-cultura', false);
+
+  // Forjadora designs
+  glowSphere('forjadora');
+  updateTaskItem(t4, 'active');
+  document.getElementById('statusText').textContent = 'FORJADORA diseñando la portada…';
+  await sleep(2000);
+  updateTaskItem(t4, 'done');
+  glowSphere('forjadora', false);
+
+  // Stage 3: Synthia synthesizes (ALIGN — spheres sync)
+  glowSphere('synthia');
+  glowSphere('dra-cultura'); // entrained
+  glowSphere('dr-economia'); // entrained
+  document.getElementById('statusText').textContent = 'SYNTHIA sintetizando el entregable…';
+  const synth = addTaskItem('Sintetizando entregable final', 'SYNTHIA', 'active');
+  await sleep(2000);
+  updateTaskItem(synth, 'done');
+
+  // Asset appears
+  resetSpheres();
+  glowSphere('synthia');
+  showAsset(task);
+  await sleep(800);
+
+  // Approve bar
+  document.getElementById('statusText').textContent = 'Completado ✓';
+  document.querySelector('.pulse-dot').style.background = 'var(--sage)';
+  document.getElementById('approveBar').classList.add('active');
+  isWorking = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function resetSpheres() {
+  Object.keys(AGENTS).forEach(id => glowSphere(id, false));
+}
+
+// ── Asset dock ─────────────────────────────────────────────
+function showAsset(task) {
+  const dock = document.getElementById('assetDock');
+  dock.innerHTML = `
+    <div class="asset-card" onclick="openViewer()">
+      <div class="asset-icon">📄</div>
+      <div class="asset-name">Propuesta de Servicios</div>
+      <div class="asset-meta">PDF · generado por SYNTHIA · ahora</div>
+    </div>
+  `;
+  // Store the generated content for the viewer
+  window._assetContent = generateProposal(task);
+}
+
+// ── Asset viewer ───────────────────────────────────────────
+function openViewer() {
+  const content = window._assetContent || '<p>Sin contenido.</p>';
+  document.getElementById('viewerContent').innerHTML = content;
+  document.getElementById('viewer').classList.add('active');
+}
+function closeViewer() {
+  document.getElementById('viewer').classList.remove('active');
+}
+function sendAsset() {
+  alert('✓ Propuesta enviada.\n\n(En producción: esto enrutaría al canal configurado — email, WhatsApp, o Telegram.)');
+}
+
+// ── Generate a proposal (mock — replace with real LLM output) ─
+function generateProposal(task) {
+  return `
+    <div class="doc-title">Propuesta de Servicios</div>
+    <div class="doc-meta">KUPURI MEDIA™ · CDMX · ${new Date().toLocaleDateString('es-MX')}</div>
+    <div class="doc-body">
+      <p>Estimado cliente,</p>
+      <p>Gracias por considerar <strong>Kupuri Media™</strong> para su proyecto. Basado en su solicitud — <em>"${task.substring(0, 100)}..."</em> — presentamos la siguiente propuesta:</p>
+
+      <h2>Resumen Ejecutivo</h2>
+      <p>Diseñaremos una presencia digital integral que comunique la esencia de su marca, conecte con su audiencia en CDMX, y genere resultados medibles.</p>
+
+      <h2>Alcance</h2>
+      <ul>
+        <li><strong>Branding</strong> — Identidad visual completa (logo, paleta, tipografía, guía de marca)</li>
+        <li><strong>Sitio Web</strong> — Diseño y desarrollo responsive, optimizado para móvil y SEO</li>
+        <li><strong>Redes Sociales</strong> — Estrategia de contenido, calendario mensual, gestión de 3 plataformas</li>
+        <li><strong>Analytics</strong> — Dashboard de métricas en tiempo real</li>
+      </ul>
+
+      <h2>Inversión</h2>
+      <ul>
+        <li>Setup (one-time): <strong>$15,000 MXN</strong></li>
+        <li>Mantenimiento mensual: <strong>$4,997 MXN/mes</strong></li>
+      </ul>
+
+      <h2>Tiempos</h2>
+      <ul>
+        <li>Semana 1-2: Branding y aprobación</li>
+        <li>Semana 3-4: Desarrollo del sitio</li>
+        <li>Semana 5: Lanzamiento + primera campaña</li>
+      </ul>
+
+      <h2>Por qué Kupuri</h2>
+      <p>Somos un estudio de CDMX que combina diseño de clase mundial con tecnología de IA. No usamos plantillas — cada proyecto es único, pensado, y medido. Hablamos su idioma: el del negocio real.</p>
+
+      <p style="margin-top: 32px; color: var(--muted); font-size: 13px;">Propuesta generada por SYNTHIA 3.1™ · Kupuri Media™</p>
+    </div>
+  `;
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function toggleLang() {
+  lang = lang === 'es' ? 'en' : 'es';
+  const btn = document.querySelector('.lang-toggle');
+  btn.textContent = lang.toUpperCase() + ' ▾';
+  // (full i18n toggle in production)
+}
+
+// Enter key submits
+document.getElementById('taskInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitTask();
+  }
+});
+
+// Close viewer on overlay click
+document.getElementById('viewer').addEventListener('click', (e) => {
+  if (e.target.id === 'viewer') closeViewer();
+});
+</script>
+</body>
+</html>
